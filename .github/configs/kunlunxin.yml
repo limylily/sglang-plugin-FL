@@ -38,6 +38,4 @@ container_options: >-
   -e USE_FLAGGEMS=1
   -e SGLANG_PLUGINS=sglang_fl
   -e SGLANG_SKIP_SGL_KERNEL_VERSION_CHECK=1
-  -e SGLANG_FL_DIST_BACKEND=flagcx
-  -e SGLANG_FL_CONFIG=/sgl-workspace/sglang-upgrade/sglang-plugin-FL/sglang_fl/dispatch/config/kunlunxin.yaml
-  -e SGLANG_FL_PER_OP="silu_and_mul=flagos;mrotary_embedding=flagos;topk=reference;gemma_rms_norm=reference;fused_moe=vendor;chunk_gated_delta_rule=vendor;fused_recurrent_gated_delta_rule_packed_decode=vendor"
+  -e SGLANG_FORCE_COARSE_WAR_BARRIER=1

@@ -110,15 +110,8 @@ jobs:
             --platform ${{ inputs.platform }} \
             --ci-stage ${{ inputs.ci_stage }}
 
-  # Self-hosted docker runners accumulate leaked job networks — cancelled runs
-  # skip the runner's per-job labeled cleanup — which eventually exhausts the
-  # daemon address pool ("all predefined address pools have been fully
-  # subnetted") and blocks every subsequent container job on that host.
-  # This job runs WITHOUT a container (no docker network allocation needed), so
-  # it can start on an exhausted host, and removes only stale github_network_*
-  # entries; in-use networks fail the rm and are kept. It runs for every
-  # platform and must NOT be gated or skipped: functional depends on it, and a
-  # skipped dependency cascades skip through the whole chain.
+  # Run outside a container so cleanup can start even when leaked job networks
+  # have exhausted the Docker address pool. In-use networks are kept by Docker.
   docker-cleanup:
     name: "Docker network cleanup"
     needs: [setup]
@@ -126,9 +119,6 @@ jobs:
     steps:
       - name: Remove leaked github_network_* networks
         run: |
-          # No-op on hosts without docker (cloud runners); harmless where it
-          # exists: only stale github_network_* entries are removed, in-use
-          # networks fail the rm and are kept.
           command -v docker >/dev/null || exit 0
           docker network ls --format '{{.Name}}' \
             | grep '^github_network_' \
@@ -157,7 +147,7 @@ jobs:
     if: inputs.run_e2e && needs.setup.outputs.e2e_matrix != '[]'
     strategy:
       fail-fast: false
-      max-parallel: ${{ fromJson(needs.setup.outputs.config).e2e_max_parallel || ((inputs.platform == 'musa' || inputs.platform == 'ascend' || inputs.platform == 'hygon') && 1 || 256) }}
+      max-parallel: ${{ fromJson(needs.setup.outputs.config).e2e_max_parallel || ((inputs.platform == 'musa' || inputs.platform == 'ascend' || inputs.platform == 'hygon' || inputs.platform == 'kunlunxin') && 1 || 256) }}
       matrix:
         test: ${{ fromJson(needs.setup.outputs.e2e_matrix) }}
     uses: ./.github/workflows/_e2e_test.yml

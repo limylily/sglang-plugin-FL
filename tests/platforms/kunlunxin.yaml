@@ -1,10 +1,8 @@
 platform: kunlunxin
 vendor: kunlunxin
 
-# The P800/FlagCX runtime cannot reliably host two independent TP process
-# groups at once.  In particular, co-scheduled TP4 serving cases leave rank 0
-# stuck in model loading while the other ranks finish, so run E2E cases
-# serially even when the runner exposes eight devices.
+# Keep independent TP engines serial on P800, including within a matrix job.
+# This does not disable concurrent requests handled by a single engine.
 e2e_serial: true
 
 device_types:
@@ -12,14 +10,7 @@ device_types:
     memory_gb: 96
     tags: [kunlunxin, xpu, bf16]
 
-engine_overrides:
-  qwen3_6:
-    27b_tp4_nograph:
-      disable_radix_cache: true
-      disable_overlap_schedule: true
-    35b_a3b_tp4_nograph:
-      disable_radix_cache: true
-      disable_overlap_schedule: true
+engine_overrides: {}
 
 tolerance:
   inference:
@@ -32,7 +23,9 @@ env_defaults:
   USE_FLAGGEMS: "1"
   USE_FLAGTUNE: "0"
   SGLANG_SKIP_SGL_KERNEL_VERSION_CHECK: "1"
-  FLAGCX_PATH: "/sgl-workspace/sglang-upgrade/FlagCX"
+  FLAGCX_PATH: "/opt/FlagCX"
+  SGLANG_FORCE_COARSE_WAR_BARRIER: "1"
+  SGLANG_PLUGINS: "sglang_fl"
 
 p800:
   name: "p800"
@@ -49,6 +42,8 @@ p800:
           qwen3_6: ["27b_tp4_nograph", "35b_a3b_tp4_nograph"]
         serving:
           qwen3_6: ["35b_a3b_tp4_nograph", "27b_tp4_nograph"]
+        concurrent:
+          qwen3_6: ["27b_tp4_nograph", "35b_a3b_tp4_nograph"]
       nightly:
         inference:
           qwen3_6: ["27b_tp4_nograph", "35b_a3b_tp4_nograph"]
@@ -59,7 +54,7 @@ p800:
     benchmark:
       pr:
         enabled: true
-        types: ["serve"]
+        types: ["throughput", "latency", "serve"]
       nightly:
         enabled: true
         types: ["throughput", "latency", "serve"]

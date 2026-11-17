@@ -82,10 +82,7 @@ RUN git init /opt/sglang && \
     git -C /opt/sglang checkout --detach FETCH_HEAD
 
 FROM sglang-source AS sglang
-COPY docker/kunlunxin/sglang-v0.5.18-kunlunxin.patch /opt/sglang-v0.5.18-kunlunxin.patch
-RUN git -C /opt/sglang apply --check /opt/sglang-v0.5.18-kunlunxin.patch && \
-    git -C /opt/sglang apply /opt/sglang-v0.5.18-kunlunxin.patch && \
-    cp /opt/sglang/python/pyproject_other.toml /opt/sglang/python/pyproject.toml
+RUN cp /opt/sglang/python/pyproject_other.toml /opt/sglang/python/pyproject.toml
 # compressed-tensors metadata requires torch, transformers, pydantic, and
 # loguru. The first three are resolved by srt_empty; install the missing
 # pure-Python dependency explicitly while preserving vendor Torch.
@@ -109,10 +106,9 @@ ENV PYTHONPATH=/opt/flagtree \
     USE_FLAGGEMS=1 \
     SGLANG_PLUGINS=sglang_fl \
     SGLANG_SKIP_SGL_KERNEL_VERSION_CHECK=1 \
+    SGLANG_FORCE_COARSE_WAR_BARRIER=1 \
     SGLANG_FL_DIST_BACKEND=flagcx \
-    FLAGCX_PATH=/opt/FlagCX \
-    SGLANG_FL_CONFIG=/opt/sglang-plugin-fl/sglang_fl/dispatch/config/kunlunxin.yaml \
-    SGLANG_FL_PER_OP="silu_and_mul=flagos;mrotary_embedding=flagos;topk=reference;gemma_rms_norm=reference;fused_moe=vendor;chunk_gated_delta_rule=vendor;fused_recurrent_gated_delta_rule_packed_decode=vendor"
+    FLAGCX_PATH=/opt/FlagCX
 WORKDIR /opt/sglang-plugin-fl
 COPY pyproject.toml ./
 COPY sglang_fl/ ./sglang_fl/

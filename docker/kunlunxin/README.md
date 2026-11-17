@@ -15,15 +15,15 @@ project directory). Override the base image or pip index with `BASE_IMAGE` /
 ```bash
 docker build --network=host \
   -f docker/kunlunxin/empty-0.5.18.containerfile \
-  -t sglang-fl:kunlunxin-0.5.18-202611021836 .
+  -t harbor.baai.ac.cn/flagos-dev/sglang-plugin-fl:kunlunxin-0.5.18-202611121806 .
 ```
 
 In-image layout:
 
 ```text
-/sgl-workspace/sglang-upgrade/sglang              # patched SGLang 0.5.18 sources
-/sgl-workspace/sglang-upgrade/sglang-plugin-FL    # adapted sglang-plugin-FL sources
-/sgl-workspace/sglang-upgrade/FlagCX              # FLAGCX_PATH
+/opt/sglang              # patched SGLang 0.5.18 sources
+/opt/sglang-plugin-fl    # adapted sglang-plugin-fl sources
+/opt/FlagCX              # FLAGCX_PATH
 ```
 
 ## Run
@@ -33,16 +33,13 @@ docker run -itd --name kunlunxin-sglang-ci-verify \
   --network=host --ipc=host --privileged --shm-size=512g \
   -v /data/models:/data/models \
   -v /data/models/Qwen:/models \
-  -e USE_FLAGGEMS=1 -e SGLANG_PLUGINS=sglang_fl \
   -e SGLANG_SKIP_SGL_KERNEL_VERSION_CHECK=1 \
-  -e SGLANG_FL_DIST_BACKEND=flagcx \
-  -e FLAGCX_PATH=/sgl-workspace/sglang-upgrade/FlagCX \
-  sglang-fl:kunlunxin-0.5.18 bash
+  harbor.baai.ac.cn/flagos-dev/sglang-plugin-fl:kunlunxin-0.5.18-202611121806 bash
 
 docker exec -it kunlunxin-sglang-ci-verify bash
 ```
 
-After each `docker exec`, verify the environment from the sglang-plugin-FL
+After each `docker exec`, verify the environment from the sglang-plugin-fl
 project directory:
 
 ```bash
@@ -58,29 +55,12 @@ Versions retained and validated on the empty base:
 | Component | Version |
 |---|---|
 | Python | 3.10.12 |
-| SGLang | 0.5.18 (with the kunlunxin source patch in this directory) |
+| SGLang | 0.5.18 |
 | Torch | 2.9.0 |
 | FlagTree | 0.7.1a1+xpu3.6 |
-| FlagGems | master (commit 7fcdbed) |
-| FlagCX | main (commit 7812d2e9) |
+| FlagGems | master (commit 75823ed) |
+| FlagCX | main (commit 9e42db36) |
 | sglang-kernel | 0.4.2.post2+d4466f4499 |
-
-## Apply the SGLang source patch before install
-
-Apply [`sglang-v0.5.18-kunlunxin.patch`](sglang-v0.5.18-kunlunxin.patch) to
-**SGLang v0.5.18 sources** before installing SGLang. Installing or updating the
-plugin alone does not fix the upstream hard imports.
-
-The container build owns this install order. For a manual from-source deploy,
-run the following from the SGLang tree before installing SGLang:
-
-```bash
-git apply --check "docker/kunlunxin/sglang-v0.5.18-kunlunxin.patch"
-git apply "docker/kunlunxin/sglang-v0.5.18-kunlunxin.patch"
-```
-
-Then install that SGLang tree and the plugin as in the container build. The
-patch only makes three hard imports optional on Kunlunxin.
 
 ## Model acceptance
 
@@ -97,11 +77,22 @@ Kunlunxin shares the unit / functional / benchmark / e2e workflows. See
 from the host `/data/models` to `/data/models`.
 
 Published CI tag:
-`harbor.baai.ac.cn/flagos-dev/sglang-plugin-fl:0.5.18-kunlunxin-ci-202611021838`.
+`harbor.baai.ac.cn/flagos-dev/sglang-plugin-fl@sha256:f3764ee03d4d6ce3883b952a6ea030792629de74fe785e2775fa9d5f7ca3a7c7`.
 
-To reproduce, build `sglang-fl:kunlunxin-0.5.18` as above, then:
+To rebuild only the checked-out plugin on this validated CI stack:
+
+```bash
+docker build -f docker/kunlunxin/ci-runtime-0.5.18.containerfile \
+  -t sglang-fl:kunlunxin-ci-local .
+```
+
+This keeps the vendor dependency layer cached and checks the updated plugin
+against the same versions as the published CI image. Dispatch defaults come
+from the packaged Kunlunxin YAML without image-specific per-op overrides.
+
+To reproduce, build `harbor.baai.ac.cn/flagos-dev/sglang-plugin-fl:kunlunxin-0.5.18-202611121806` as above, then:
 
 ```bash
 docker build -f docker/kunlunxin/ci-0.5.18.containerfile \
-  -t harbor.baai.ac.cn/flagos-dev/sglang-plugin-fl:0.5.18-kunlunxin-ci-202611021838 .
+  -t harbor.baai.ac.cn/flagos-dev/sglang-plugin-fl:0.5.18-kunlunxin-ci-202611121808 .
 ```
